@@ -1,0 +1,69 @@
+# ==============================================================================
+# Git Ignore - KPRIET Smart Hostel Attendance Management System
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Production Secrets
+.env
+.env.*
+!.env.example
+
+# SQLite Databases & Database Files (Protects real student records)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+smart_hostel.db
+backend/smart_hostel.db
+backup/
+backups/
+*.bak
+
+# Local Student Biometric Photographs (Protects PII & Biometric assets)
+backend/app/uploads/profiles/*
+!backend/app/uploads/profiles/.gitkeep
+backend/app/uploads/reports/*
+!backend/app/uploads/reports/.gitkeep
+backend/uploads/
+uploads/
+
+# Pytest & Test Execution Caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Flutter & Dart Build Outputs
+smart_hostel_app/build/
+smart_hostel_app/.dart_tool/
+smart_hostel_app/.flutter-plugins
+smart_hostel_app/.flutter-plugins-dependencies
+smart_hostel_app/.packages
+
+# Android Native Build Outputs & Local Secrets
+smart_hostel_app/android/.gradle/
+smart_hostel_app/android/local.properties
+smart_hostel_app/android/app/build/
+*.keystore
+*.jks
+
+# IDE, OS & Editor Caches
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.gemini/

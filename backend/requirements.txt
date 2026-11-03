@@ -1,0 +1,30 @@
+# ==============================================================================
+# KPRIET Smart Hostel Attendance Management System - Production Dependencies
+# Targeted for Render Cloud Deployment (Linux x86_64, Python 3.11 / 3.12)
+# ==============================================================================
+
+# Core Web Framework & Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+email-validator>=2.2.0
+python-dotenv>=1.0.1
+
+# Database ORM & PostgreSQL Driver
+sqlalchemy>=2.0.30
+psycopg2-binary>=2.9.9
+
+# Data Validation & Cryptography
+pydantic>=2.8.0
+bcrypt>=4.1.0
+
+# Facial Recognition & Machine Learning (Headless for Cloud Linux)
+# Note: opencv-python-headless avoids missing libGL.so.1 and X11 GUI dependencies
+opencv-python-headless>=4.10.0.84
+numpy>=1.26.0
+
+# Institutional Reporting & Document Generation
+reportlab>=4.2.0
+
+# HTTP Client (for Supabase Storage REST API & health checks)
+httpx>=0.27.0
