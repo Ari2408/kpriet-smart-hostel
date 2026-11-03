@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/staff_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/metric_card.dart';
@@ -55,43 +56,45 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               "Permanently Delete Student",
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Are you sure you want to permanently delete this student? This action cannot be undone.",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.absentRed,
-                    fontWeight: FontWeight.w700,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Are you sure you want to permanently delete this student? This action cannot be undone.",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.absentRed,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "This will permanently purge biometric photos, facial feature embeddings, and authentication credentials. Historical attendance records will be anonymized for institutional audit compliance.",
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Type the register number $expectedRegNo to confirm:",
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: confirmController,
-                  decoration: InputDecoration(
-                    hintText: expectedRegNo,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "This will permanently purge biometric photos, facial feature embeddings, and authentication credentials. Historical attendance records will be anonymized for institutional audit compliance.",
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
                   ),
-                  onChanged: (val) {
-                    setDialogState(() {
-                      isMatch = val.trim() == expectedRegNo.trim();
-                    });
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    "Type the register number $expectedRegNo to confirm:",
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: confirmController,
+                    decoration: InputDecoration(
+                      hintText: expectedRegNo,
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        isMatch = val.trim() == expectedRegNo.trim();
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -150,24 +153,26 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text("Reset Password for ${widget.student.name}"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Configure a new initial password. Existing passwords are never displayed for security.",
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: newPassController,
-              decoration: const InputDecoration(
-                labelText: "New Password",
-                hintText: "Min 8 characters",
-                prefixIcon: Icon(Icons.lock_outline),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Configure a new initial password. Existing passwords are never displayed for security.",
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              TextField(
+                controller: newPassController,
+                decoration: const InputDecoration(
+                  labelText: "New Password",
+                  hintText: "Min 8 characters",
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
@@ -210,6 +215,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.student;
+    final token = context.watch<AuthProvider>().token;
     final percentage = (_stats?["percentage"] as num?)?.toDouble() ?? 0.0;
     final present = _stats?["present_count"] ?? 0;
     final absent = _stats?["absent_count"] ?? 0;
@@ -241,7 +247,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                       radius: 40,
                       backgroundColor: AppColors.primaryNavy,
                       backgroundImage: s.profilePhotoUrl != null && s.profilePhotoUrl!.isNotEmpty
-                          ? NetworkImage("${ApiConstants.baseUrl}${s.profilePhotoUrl}")
+                          ? NetworkImage(
+                              ApiConstants.photoUrl(s.profilePhotoUrl, token),
+                              headers: token != null ? {"Authorization": "Bearer $token"} : null,
+                            )
                           : null,
                       child: s.profilePhotoUrl == null || s.profilePhotoUrl!.isEmpty
                           ? Text(
@@ -261,11 +270,12 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                       style: const TextStyle(fontSize: 14, color: AppColors.primaryNavy, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
                         _chip(s.department ?? "Engineering"),
-                        const SizedBox(width: 8),
                         _chip("Academic Year ${s.academicYear ?? 1}"),
                       ],
                     ),
@@ -391,6 +401,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryNavy),
       ),
     );
@@ -398,10 +410,17 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
 
   Widget _detailItem(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          ),
+        ),
       ],
     );
   }

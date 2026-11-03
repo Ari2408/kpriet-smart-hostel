@@ -7,6 +7,9 @@ class SystemConfigModel {
   final String attendanceStartTime;
   final String attendanceEndTime;
   final double livenessStrictness;
+  final bool isWindowOpen;
+  final String? currentTimeIst;
+  final String? serverTimezone;
 
   SystemConfigModel({
     this.id,
@@ -17,6 +20,9 @@ class SystemConfigModel {
     required this.attendanceStartTime,
     required this.attendanceEndTime,
     this.livenessStrictness = 0.65,
+    this.isWindowOpen = false,
+    this.currentTimeIst,
+    this.serverTimezone,
   });
 
   factory SystemConfigModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +35,9 @@ class SystemConfigModel {
       attendanceStartTime: json['attendance_start_time'] ?? '19:00',
       attendanceEndTime: json['attendance_end_time'] ?? '20:00',
       livenessStrictness: (json['liveness_strictness'] as num?)?.toDouble() ?? 0.65,
+      isWindowOpen: json['is_window_open'] as bool? ?? false,
+      currentTimeIst: json['current_time_ist'] as String?,
+      serverTimezone: json['server_timezone'] as String? ?? 'Asia/Kolkata (IST)',
     );
   }
 

@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Load local .env if present
-load_dotenv()
+# Load local .env if present (do not override explicit test/CI environment overrides)
+load_dotenv(override=False)
 
 def validate_database_url(url: Optional[str], environment: str = "development") -> str:
     """

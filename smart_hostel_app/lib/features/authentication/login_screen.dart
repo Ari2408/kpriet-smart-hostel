@@ -96,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Configure backend host for emulator, physical device or LAN:",
+              "Configure backend host for cloud, emulator, or local testing:",
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
@@ -104,20 +104,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               controller: urlController,
               decoration: const InputDecoration(
                 labelText: "Server Base URL",
-                hintText: "http://10.0.2.2:8000 or http://192.168.1.X:8000",
+                hintText: ApiConstants.productionBaseUrl,
               ),
             ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
+              runSpacing: 6,
               children: [
                 ActionChip(
+                  avatar: const Icon(Icons.cloud_done_rounded, size: 16, color: AppColors.primaryNavy),
+                  label: const Text("Render Cloud"),
+                  onPressed: () => urlController.text = ApiConstants.productionBaseUrl,
+                ),
+                ActionChip(
                   label: const Text("Emulator (10.0.2.2)"),
-                  onPressed: () => urlController.text = "http://10.0.2.2:8000",
+                  onPressed: () => urlController.text = ApiConstants.emulatorBaseUrl,
                 ),
                 ActionChip(
                   label: const Text("Localhost (127.0.0.1)"),
-                  onPressed: () => urlController.text = "http://127.0.0.1:8000",
+                  onPressed: () => urlController.text = ApiConstants.localhostBaseUrl,
                 ),
               ],
             ),

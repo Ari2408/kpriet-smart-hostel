@@ -24,7 +24,8 @@ from ..services.face_service import (
 from ..services.attendance_service import (
     get_current_system_config, is_within_attendance_window,
     calculate_student_stats, get_today_student_status,
-    get_staff_today_summary, parse_time_str
+    get_staff_today_summary, parse_time_str,
+    get_ist_now, get_ist_today, get_ist_time
 )
 
 router = APIRouter(prefix="/api/attendance", tags=["Attendance Management"])
@@ -217,10 +218,10 @@ def mark_verified_attendance(
         raise HTTPException(status_code=400, detail="Liveness and facial verification not completed for this session.")
 
     config = get_current_system_config(db)
-    today = datetime.date.today()
-    now_dt = datetime.datetime.now()
+    today = get_ist_today()
+    now_dt = get_ist_now()
 
-    # 2. Check Time Window (7:00 PM - 8:00 PM)
+    # 2. Check Time Window (Evaluated strictly in Indian Standard Time - IST)
     check_time = now_dt.time()
     if payload.test_time_override:
         try:
@@ -335,10 +336,10 @@ def submit_attendance(
         raise HTTPException(status_code=404, detail="Student not found or deactivated.")
 
     config = get_current_system_config(db)
-    today = datetime.date.today()
-    now_dt = datetime.datetime.now()
+    today = get_ist_today()
+    now_dt = get_ist_now()
 
-    # 2. Check Time Window (7:00 PM - 8:00 PM)
+    # 2. Check Time Window (Evaluated strictly in Indian Standard Time - IST)
     check_time = now_dt.time()
     if payload.test_time_override:
         try:
@@ -461,10 +462,11 @@ def get_student_dashboard(
         raise HTTPException(status_code=404, detail="Student not found.")
 
     config = get_current_system_config(db)
-    now_time = datetime.datetime.now().time()
+    now_dt = get_ist_now()
+    now_time = now_dt.time()
     in_window, _ = is_within_attendance_window(config, now_time)
 
-    today_status, today_time = get_today_student_status(db, student.id)
+    today_status, today_time = get_today_student_status(db, student.id, now_dt.date())
     stats = calculate_student_stats(db, student.id)
 
     # Recent history (last 10 records)
@@ -531,11 +533,11 @@ def get_staff_dashboard(
     - Filterable and searchable attendance table
     """
     config = get_current_system_config(db)
-    now_dt = datetime.datetime.now()
+    now_dt = get_ist_now()
     now_time = now_dt.time()
     in_window, _ = is_within_attendance_window(config, now_time)
 
-    day = datetime.datetime.strptime(target_date, "%Y-%m-%d").date() if target_date else datetime.date.today()
+    day = datetime.datetime.strptime(target_date, "%Y-%m-%d").date() if target_date else now_dt.date()
     summary = get_staff_today_summary(db, day)
 
     # Fetch active students
@@ -633,11 +635,17 @@ def get_absent_students(
     Returns list of students who have not marked attendance for the specified date.
     Shows pending before window closes, absent after window closes.
     """
-    day = datetime.datetime.strptime(target_date, "%Y-%m-%d").date() if target_date else datetime.date.today()
+    now_dt = get_ist_now()
+    day = datetime.datetime.strptime(target_date, "%Y-%m-%d").date() if target_date else now_dt.date()
     config = get_current_system_config(db)
-    now_time = datetime.datetime.now().time()
+    now_time = now_dt.time()
+    start_time = parse_time_str(config.attendance_start_time)
     end_time = parse_time_str(config.attendance_end_time)
-    window_closed = now_time > end_time
+
+    if start_time <= end_time:
+        window_closed = now_time > end_time
+    else:
+        window_closed = (end_time < now_time < start_time)
 
     present_ids = [
         row[0] for row in db.query(Attendance.student_id).filter(

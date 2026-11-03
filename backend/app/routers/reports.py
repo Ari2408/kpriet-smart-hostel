@@ -8,7 +8,7 @@ from ..database import get_db
 from ..models import Attendance, Student
 from ..security import require_staff
 from ..services.report_service import generate_attendance_csv, generate_attendance_pdf
-from ..services.attendance_service import get_current_system_config
+from ..services.attendance_service import get_current_system_config, get_ist_today
 
 router = APIRouter(prefix="/api/reports", tags=["Reports & Analytics"])
 
@@ -122,7 +122,7 @@ def export_csv_report(
     """
     records = _fetch_records_for_report(db, start_date, end_date, department)
     csv_content = generate_attendance_csv(records)
-    filename = f"KPRIET_Hostel_Attendance_{datetime.date.today().strftime('%Y%m%d')}.csv"
+    filename = f"KPRIET_Hostel_Attendance_{get_ist_today().strftime('%Y%m%d')}.csv"
 
     return Response(
         content=csv_content,
@@ -153,7 +153,7 @@ def export_pdf_report(
         report_title="Daily & Monthly Attendance Summary",
         filter_info=filter_label
     )
-    filename = f"KPRIET_Hostel_Report_{datetime.date.today().strftime('%Y%m%d')}.pdf"
+    filename = f"KPRIET_Hostel_Report_{get_ist_today().strftime('%Y%m%d')}.pdf"
 
     return Response(
         content=pdf_bytes,

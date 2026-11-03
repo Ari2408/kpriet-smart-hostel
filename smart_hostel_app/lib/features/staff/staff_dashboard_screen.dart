@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/config_provider.dart';
 import '../../providers/staff_provider.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/status_badge.dart';
@@ -21,6 +22,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<StaffProvider>().fetchDashboard();
+      context.read<ConfigProvider>().fetchConfig();
     });
   }
 
@@ -75,7 +77,12 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
       body: staffProv.isLoading && data == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () => staffProv.fetchDashboard(),
+              onRefresh: () async {
+                await Future.wait([
+                  staffProv.fetchDashboard(),
+                  context.read<ConfigProvider>().fetchConfig(),
+                ]);
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(18),
@@ -111,7 +118,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  "Window: ${data?.windowStart ?? '19:00'} - ${data?.windowEnd ?? '20:00'} • Server Time: ${data?.serverTime ?? ''}",
+                                  "Window: ${data?.windowStart ?? '19:00'} - ${data?.windowEnd ?? '20:00'} IST • Server Time: ${data?.serverTime ?? ''} IST",
                                   style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                 ),
                               ],
@@ -148,7 +155,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                       mainAxisSpacing: 12,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 1.45,
+                      childAspectRatio: 1.2,
                       children: [
                         MetricCard(
                           title: "Total Students",

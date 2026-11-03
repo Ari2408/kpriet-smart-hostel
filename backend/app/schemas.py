@@ -26,6 +26,9 @@ class SystemConfigSchema(BaseModel):
     attendance_start_time: str
     attendance_end_time: str
     liveness_strictness: float = 0.65
+    is_window_open: Optional[bool] = None
+    current_time_ist: Optional[str] = None
+    server_timezone: Optional[str] = "Asia/Kolkata (IST)"
 
 class SystemConfigUpdate(BaseModel):
     campus_name: Optional[str] = None

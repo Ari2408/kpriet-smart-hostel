@@ -16,6 +16,12 @@ class _LocationVerificationScreenState extends State<LocationVerificationScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<ConfigProvider>().fetchConfig();
+      if (mounted) {
+        _triggerLocationCheck();
+      }
+    });
     _triggerLocationCheck();
   }
 

@@ -4,6 +4,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/config_provider.dart';
+import '../../providers/staff_provider.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -27,6 +28,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   void initState() {
     super.initState();
     _loadConfigValues();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<ConfigProvider>().fetchConfig();
+      if (mounted) {
+        _loadConfigValues();
+      }
+    });
   }
 
   void _loadConfigValues() {
@@ -62,6 +69,26 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     final start = _startTimeController.text.trim();
     final end = _endTimeController.text.trim();
 
+    final timeRegex = RegExp(r'^([01]?\d|2[0-3]):[0-5]\d$');
+    if (!timeRegex.hasMatch(start)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Start time must be in 24-hour HH:MM format (e.g. 19:00)."),
+          backgroundColor: AppColors.absentRed,
+        ),
+      );
+      return;
+    }
+    if (!timeRegex.hasMatch(end)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("End time must be in 24-hour HH:MM format (e.g. 20:00)."),
+          backgroundColor: AppColors.absentRed,
+        ),
+      );
+      return;
+    }
+
     // Update backend base URL if edited
     if (_serverUrlController.text.trim().isNotEmpty) {
       context.read<AuthProvider>().updateBackendUrl(_serverUrlController.text.trim());
@@ -80,6 +107,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     if (!mounted) return;
 
     if (success) {
+      context.read<StaffProvider>().fetchDashboard();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Campus geofence and attendance window updated successfully!"),
@@ -300,7 +328,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         controller: _serverUrlController,
                         decoration: const InputDecoration(
                           labelText: "Server Base URL",
-                          hintText: "http://10.0.2.2:8000 or http://192.168.1.X:8000",
+                          hintText: ApiConstants.productionBaseUrl,
                           prefixIcon: Icon(Icons.dns_rounded),
                         ),
                       ),

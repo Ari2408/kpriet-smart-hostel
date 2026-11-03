@@ -8,7 +8,10 @@ import numpy as np
 import cv2
 from fastapi.testclient import TestClient
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(BACKEND_DIR)
+os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(BACKEND_DIR, 'smart_hostel.db').replace('\\', '/')}"
+os.environ["ENVIRONMENT"] = "development"
 
 from app.main import app
 from app.database import Base, engine, SessionLocal

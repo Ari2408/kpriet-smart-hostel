@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/staff_provider.dart';
 
 class StudentManagementScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final staffProv = context.watch<StaffProvider>();
+    final token = context.watch<AuthProvider>().token;
     final students = staffProv.students;
 
     return Scaffold(
@@ -105,7 +107,10 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
                                   radius: 24,
                                   backgroundColor: AppColors.primaryNavy,
                                   backgroundImage: s.profilePhotoUrl != null && s.profilePhotoUrl!.isNotEmpty
-                                      ? NetworkImage("${ApiConstants.baseUrl}${s.profilePhotoUrl}")
+                                      ? NetworkImage(
+                                          ApiConstants.photoUrl(s.profilePhotoUrl, token),
+                                          headers: token != null ? {"Authorization": "Bearer $token"} : null,
+                                        )
                                       : null,
                                   child: s.profilePhotoUrl == null || s.profilePhotoUrl!.isEmpty
                                       ? Text(

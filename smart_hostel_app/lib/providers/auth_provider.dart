@@ -25,7 +25,16 @@ class AuthProvider extends ChangeNotifier {
     try {
       final savedUrl = await StorageService.getBaseUrl();
       if (savedUrl != null && savedUrl.isNotEmpty) {
-        ApiConstants.baseUrl = savedUrl;
+        // Automatically upgrade legacy local emulator URLs to the production cloud URL
+        if (savedUrl == "http://10.0.2.2:8000" || savedUrl == "http://127.0.0.1:8000") {
+          ApiConstants.baseUrl = ApiConstants.productionBaseUrl;
+          await StorageService.saveBaseUrl(ApiConstants.productionBaseUrl);
+        } else {
+          ApiConstants.baseUrl = savedUrl;
+        }
+      } else {
+        // Default to production cloud URL and persist
+        ApiConstants.baseUrl = ApiConstants.productionBaseUrl;
       }
 
       final savedToken = await StorageService.getToken();

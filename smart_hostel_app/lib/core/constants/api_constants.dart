@@ -1,6 +1,34 @@
 class ApiConstants {
-  // Default to Android Emulator localhost; configurable in settings or via AppConfig
-  static String baseUrl = "http://10.0.2.2:8000";
+  // Production Render Cloud Backend URL (HTTPS)
+  static const String productionBaseUrl = "https://kpriet-smart-hostel.onrender.com";
+
+  // Local Development Fallback URLs
+  static const String emulatorBaseUrl = "http://10.0.2.2:8000";
+  static const String localhostBaseUrl = "http://127.0.0.1:8000";
+
+  // Active Base URL: Defaults to production Render cloud backend.
+  // Can be overridden at compile time (--dart-define=API_URL=...) or at runtime in Settings.
+  static String baseUrl = const String.fromEnvironment(
+    'API_URL',
+    defaultValue: productionBaseUrl,
+  );
+
+  /// Generates full authenticated URL for profile photographs served via backend photo proxy
+  static String photoUrl(String? pathOrUrl, [String? token]) {
+    if (pathOrUrl == null || pathOrUrl.isEmpty) return "";
+    String fullUrl;
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+      fullUrl = pathOrUrl;
+    } else {
+      final path = pathOrUrl.startsWith('/') ? pathOrUrl : '/$pathOrUrl';
+      fullUrl = "$baseUrl$path";
+    }
+    if (token != null && token.isNotEmpty) {
+      final separator = fullUrl.contains('?') ? '&' : '?';
+      return "$fullUrl${separator}token=$token";
+    }
+    return fullUrl;
+  }
 
   // Auth endpoints
   static String get loginUrl => "$baseUrl/api/auth/login";

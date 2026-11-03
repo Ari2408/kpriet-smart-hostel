@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/config_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/status_badge.dart';
@@ -19,6 +20,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<StudentProvider>().fetchDashboard();
+      context.read<ConfigProvider>().fetchConfig();
     });
   }
 
@@ -53,7 +55,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       body: studentProv.isLoading && data == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () => context.read<StudentProvider>().fetchDashboard(),
+              onRefresh: () async {
+                await Future.wait([
+                  context.read<StudentProvider>().fetchDashboard(),
+                  context.read<ConfigProvider>().fetchConfig(),
+                ]);
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
@@ -184,25 +191,86 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                     children: [
                                       const Icon(Icons.access_time_rounded, size: 16, color: AppColors.textSecondary),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        "Window: ${data?.windowStart ?? '19:00'} - ${data?.windowEnd ?? '20:00'} (7 PM - 8 PM)",
-                                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                      Expanded(
+                                        child: Text(
+                                          "Window: ${data?.windowStart ?? '19:00'} - ${data?.windowEnd ?? '20:00'} IST",
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: (data?.isWindowOpen ?? false)
+                                              ? AppColors.presentGreenLight
+                                              : AppColors.surfaceMuted,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          (data?.isWindowOpen ?? false) ? "WINDOW OPEN" : "WINDOW CLOSED",
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: (data?.isWindowOpen ?? false)
+                                                ? AppColors.presentGreen
+                                                : AppColors.textMuted,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
+                                  if (data?.currentServerTime.isNotEmpty == true) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.schedule_rounded, size: 14, color: AppColors.textMuted),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "Current Server Time: ${data!.currentServerTime} IST",
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                   const SizedBox(height: 16),
                                   ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.accentBlue,
+                                      backgroundColor: (data?.isWindowOpen ?? false)
+                                          ? AppColors.accentBlue
+                                          : AppColors.surfaceMuted,
+                                      foregroundColor: (data?.isWindowOpen ?? false)
+                                          ? Colors.white
+                                          : AppColors.textSecondary,
                                       padding: const EdgeInsets.symmetric(vertical: 14),
                                     ),
                                     icon: const Icon(Icons.fingerprint_rounded, size: 24),
-                                    label: const Text(
-                                      "Register Today's Attendance",
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                    label: Text(
+                                      (data?.isWindowOpen ?? false)
+                                          ? "Register Today's Attendance"
+                                          : "Window Closed (${data?.windowStart ?? '19:00'}–${data?.windowEnd ?? '20:00'} IST)",
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                                     ),
                                     onPressed: () {
-                                      Navigator.pushNamed(context, '/location-verification');
+                                      if (data?.isWindowOpen ?? false) {
+                                        Navigator.pushNamed(context, '/location-verification');
+                                      } else {
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            icon: const Icon(Icons.access_time_filled_rounded, color: AppColors.pendingOrange, size: 40),
+                                            title: const Text("Attendance Window Closed"),
+                                            content: Text(
+                                              "Attendance registration is only permitted during the configured window: ${data?.windowStart ?? '19:00'}–${data?.windowEnd ?? '20:00'} IST.\n\nCurrent Server Time: ${data?.currentServerTime ?? 'Unknown'} IST.",
+                                              style: const TextStyle(fontSize: 14, height: 1.4),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx),
+                                                child: const Text("OK"),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
                                     },
                                   ),
                                 ],
@@ -344,9 +412,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         children: [
           Icon(icon, color: Colors.white70, size: 14),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
