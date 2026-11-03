@@ -13,6 +13,7 @@ from ..schemas import StudentCreate, StudentUpdate, StudentResponse
 from ..security import require_staff, hash_password
 from ..services.face_service import process_face_registration
 from ..services.attendance_service import calculate_student_stats
+from ..services.storage_service import save_profile_photo, delete_profile_photo
 
 router = APIRouter(prefix="/api/students", tags=["Student Management"])
 
@@ -97,18 +98,13 @@ def add_student(
 
     embedding_json = json.dumps(face_result["embedding"])
 
-    # 3. Save profile image to disk
-    photo_filename = f"{reg_no}_{uuid.uuid4().hex[:8]}.jpg"
-    photo_path = os.path.join(UPLOAD_DIR, photo_filename)
-    try:
-        img_b64 = payload.profile_image_base64
-        if "base64," in img_b64:
-            img_b64 = img_b64.split("base64,")[1]
-        with open(photo_path, "wb") as f:
-            f.write(base64.b64decode(img_b64))
-        photo_url = f"/uploads/profiles/{photo_filename}"
-    except Exception:
-        photo_url = None
+    # 3. Save profile image to persistent storage (Supabase in production, local/cloud in dev)
+    photo_url = save_profile_photo(reg_no, payload.profile_image_base64)
+    if not photo_url and os.getenv("ENVIRONMENT", "development").strip().lower() in ("production", "prod"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to securely upload student photograph to persistent cloud storage. Registration halted."
+        )
 
     # 4. Create Student Record with warden-defined password
     new_student = Student(
@@ -190,17 +186,15 @@ def update_student(
             raise HTTPException(status_code=400, detail=f"Facial re-enrollment failed: {face_result.get('message')}")
         student.facial_embedding = json.dumps(face_result["embedding"])
 
-        photo_filename = f"{student.register_number}_{uuid.uuid4().hex[:8]}.jpg"
-        photo_path = os.path.join(UPLOAD_DIR, photo_filename)
-        try:
-            img_b64 = payload.profile_image_base64
-            if "base64," in img_b64:
-                img_b64 = img_b64.split("base64,")[1]
-            with open(photo_path, "wb") as f:
-                f.write(base64.b64decode(img_b64))
-            student.profile_photo_url = f"/uploads/profiles/{photo_filename}"
-        except Exception:
-            pass
+        # Update profile photograph in persistent storage
+        photo_url = save_profile_photo(student.register_number, payload.profile_image_base64)
+        if photo_url:
+            student.profile_photo_url = photo_url
+        elif os.getenv("ENVIRONMENT", "development").strip().lower() in ("production", "prod"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update student photograph in cloud storage."
+            )
 
     db.commit()
     db.refresh(student)
@@ -233,13 +227,10 @@ def delete_student_permanently(
     dept = student.department
     year = student.academic_year
 
-    # 1. Purge physical biometric photo files from disk
+    # 1. Purge physical biometric photo files from disk and cloud storage
     if student.profile_photo_url:
         try:
-            filename = os.path.basename(student.profile_photo_url)
-            disk_file = os.path.join(UPLOAD_DIR, filename)
-            if os.path.exists(disk_file):
-                os.remove(disk_file)
+            delete_profile_photo(student.profile_photo_url)
         except Exception:
             pass
 
